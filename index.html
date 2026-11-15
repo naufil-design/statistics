@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Buku Catatan Observasi</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#EDF1F5; --surface:#FFFFFF; --ink:#17212B; --muted:#5B6773; --line:#D5DDE5; --accent:#2540E8; --accent-ink:#FFFFFF; --bar:#2540E8; --bar-soft:#B9C3F7; --danger:#B3261E;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#10161D; --surface:#18212B; --ink:#E7EDF3; --muted:#9AA7B4; --line:#2A3643; --accent:#7C90FF; --accent-ink:#0B1020; --bar:#7C90FF; --bar-soft:#34406F; --danger:#FF8A80;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#10161D; --surface:#18212B; --ink:#E7EDF3; --muted:#9AA7B4; --line:#2A3643; --accent:#7C90FF; --accent-ink:#0B1020; --bar:#7C90FF; --bar-soft:#34406F; --danger:#FF8A80;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 "Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:28px 28px;background-attachment:fixed}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+main{max-width:760px;margin:0 auto;padding:28px 16px 56px}
+h1{font:700 clamp(28px,6vw,40px)/1.1 "Bricolage Grotesque",Georgia,serif;margin:0 0 6px;letter-spacing:-.01em}
+h2{font:600 19px/1.2 "Bricolage Grotesque",Georgia,serif;margin:0 0 12px}
+.sub{color:var(--muted);margin:0 0 22px;max-width:60ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:16px}
+form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.f-name{grid-column:1/-1}
+label{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:14px}
+input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;min-width:0;width:100%}
+input::placeholder{color:var(--muted);opacity:.8}
+input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button{font:600 16px/1 "Source Sans 3",system-ui,sans-serif;border:0;border-radius:6px;padding:12px 18px;cursor:pointer}
+.add{background:var(--accent);color:var(--accent-ink);grid-column:1/-1}
+.ghost{background:transparent;color:var(--muted);border:1px solid var(--line);padding:8px 12px;font-size:14px}
+.err{grid-column:1/-1;color:var(--danger);font-size:14px;min-height:1em;margin:0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px}
+.stat{border-left:3px solid var(--accent);padding:2px 0 2px 10px}
+.stat b{display:block;font:700 24px/1.15 "Bricolage Grotesque",Georgia,serif;font-variant-numeric:tabular-nums;word-break:break-word}
+.stat span{font-size:13px;color:var(--muted)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);font-size:15px;white-space:nowrap}
+th{font-size:13px;color:var(--muted);font-weight:600}
+td.n,th.n{text-align:right}
+.del{background:transparent;color:var(--danger);padding:4px 8px;font-size:14px}
+.empty{color:var(--muted);margin:0}
+.head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+svg{width:100%;height:auto;display:block}
+.tick{fill:var(--muted);font:12px "Source Sans 3",sans-serif}
+#toast button{background:transparent;color:var(--bg);text-decoration:underline;padding:0 0 0 10px;font-size:15px}
+@media (max-width:420px){form{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Buku catatan observasi</h1>
+  <p class="sub">Catat nilai tiap pengamatan, lalu lihat ringkasan statistiknya langsung. Data tersimpan di browser ini saja.</p>
+
+  <section class="card" aria-label="Tambah data">
+    <h2>Tambah data</h2>
+    <form id="form" novalidate>
+      <label class="f-name">Nama
+        <input id="name" type="text" placeholder="mis. Subjek A, atau jenis perilaku" autocomplete="off">
+      </label>
+      <label>Nilai
+        <input id="value" type="number" step="any" inputmode="decimal" placeholder="mis. 7,5">
+      </label>
+      <label>Tanggal
+        <input id="date" type="date">
+      </label>
+      <label class="f-name">Catatan (opsional)
+        <input id="note" type="text" placeholder="mis. konteks, situasi, atau kondisi saat pengamatan" autocomplete="off">
+      </label>
+      <p class="err" id="err" role="alert"></p>
+      <button class="add" type="submit">Tambah data</button>
+    </form>
+  </section>
+
+  <section class="card" aria-label="Statistik">
+    <div class="head"><h2>Statistik</h2><label style="flex-direction:row;align-items:center;gap:8px;font-weight:400">Tampilkan <select id="filter" style="font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;max-width:200px"></select></label></div>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <section class="card" aria-label="Grafik">
+    <h2>Grafik nilai</h2>
+    <label style="flex-direction:row;align-items:center;gap:10px;font-weight:400;margin-bottom:10px">Jarak antar data <input id="step" type="range" min="10" max="25" step="1" value="15" style="flex:1;padding:0;border:0;background:transparent;accent-color:var(--accent)"> <span id="stepv" style="min-width:3.5em;font-variant-numeric:tabular-nums">15 px</span></label>
+    <div id="chart"></div>
+  </section>
+
+  <section class="card" aria-label="Rata-rata per nama">
+    <h2>Per nama</h2>
+    <div class="scroll" id="groups"></div>
+  </section>
+
+  <section class="card" aria-label="Daftar data">
+    <div class="head"><h2>Data</h2><span style="display:flex;gap:8px"><button class="ghost" id="copy" type="button">Salin CSV</button><button class="ghost" id="clear" type="button">Hapus semua</button></span></div>
+    <div class="scroll" id="list"></div>
+  </section>
+</main>
+<div id="toast" role="status" style="position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:8px;font-size:15px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .25s;z-index:20"></div>
+
+<script>
+(function(){
+  var KEY="observasi-data-v1", data=[];
+  var $=function(id){return document.getElementById(id)};
+  function load(){ try{ var r=localStorage.getItem(KEY); data=r?JSON.parse(r):[]; if(!Array.isArray(data)) data=[]; }catch(e){ data=[]; } }
+  function save(){ try{ localStorage.setItem(KEY,JSON.stringify(data)); }catch(e){} }
+  function today(){ var d=new Date(),p=function(n){return String(n).padStart(2,"0")}; return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
+  function esc(s){ return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]}); }
+  function fmt(n){ if(n===null||isNaN(n)) return "–"; return (Math.round(n*100)/100).toLocaleString("id-ID",{maximumFractionDigits:2}); }
+  function fdate(s){ var p=s.split("-"); var d=new Date(+p[0],+p[1]-1,+p[2]); return d.toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"}); }
+
+  function compute(v){
+    var n=v.length; if(!n) return null;
+    var sum=v.reduce(function(a,b){return a+b},0), mean=sum/n;
+    var s=v.slice().sort(function(a,b){return a-b});
+    var med=n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2;
+    var cnt={},best=0; v.forEach(function(x){cnt[x]=(cnt[x]||0)+1; if(cnt[x]>best) best=cnt[x];});
+    var modes=Object.keys(cnt).filter(function(k){return cnt[k]===best}).map(Number);
+    var mode=(best>1&&modes.length<n)?modes.sort(function(a,b){return a-b}).map(fmt).join(", "):"–";
+    var ss=v.reduce(function(a,x){return a+(x-mean)*(x-mean)},0);
+    var variance=n>1?ss/(n-1):null, sd=variance===null?null:Math.sqrt(variance);
+    return {n:n,sum:sum,mean:mean,med:med,mode:mode,min:s[0],max:s[n-1],range:s[n-1]-s[0],variance:variance,sd:sd};
+  }
+
+  function renderStats(){
+    var data=vis(), c=compute(data.map(function(d){return d.value}));
+    if(!c){ $("stats").innerHTML='<p class="empty">Belum ada data. Isi form di atas untuk mulai.</p>'; return; }
+    var items=[["Jumlah data",c.n],["Rata-rata",fmt(c.mean)],["Median",fmt(c.med)],["Modus",c.mode],["Minimum",fmt(c.min)],["Maksimum",fmt(c.max)],["Rentang",fmt(c.range)],["Simpangan baku",fmt(c.sd)],["Varians",fmt(c.variance)],["Total",fmt(c.sum)]];
+    $("stats").innerHTML=items.map(function(i){return '<div class="stat"><b>'+i[1]+'</b><span>'+i[0]+'</span></div>'}).join("");
+  }
+
+  function renderChart(){
+    var data=vis(), el=$("chart");
+    if(!data.length){ el.innerHTML='<p class="empty">Grafik muncul setelah ada data.</p>'; return; }
+    var st=parseFloat($("step").value); if(!(st>0)) st=1.5;
+    var H=260,T=14,B=30,P=8,ph=H-T-B,n=data.length,i;
+    var vals=data.map(function(d){return d.value});
+    var mn=Math.min(0,Math.min.apply(null,vals)), mx=Math.max(0,Math.max.apply(null,vals)); if(mx===mn) mx=mn+1;
+    var W=Math.max(1,n-1)*st+2*P;
+    var y=function(v){return T+ph-(v-mn)/(mx-mn)*ph};
+    var ax='',gr='';
+    for(i=0;i<=4;i++){var tv=mn+(mx-mn)*i/4,ty=y(tv);ax+='<text class="tick" x="42" y="'+(ty+4)+'" text-anchor="end">'+fmt(tv)+'</text>';gr+='<line x1="0" x2="'+W+'" y1="'+ty+'" y2="'+ty+'" stroke="var(--line)"/>';}
+    var pts=data.map(function(d,k){return (P+k*st).toFixed(2)+','+y(d.value).toFixed(2)});
+    var y0=y(0), xe=(P+(n-1)*st).toFixed(2);
+    var area='<polygon points="'+P+','+y0+' '+pts.join(' ')+' '+xe+','+y0+'" fill="var(--bar-soft)"/>';
+    var line='<polyline points="'+pts.join(' ')+'" fill="none" stroke="var(--bar)" stroke-width="1.5" stroke-linejoin="round"/>';
+    var dots=st>=8?data.map(function(d,k){return '<circle cx="'+(P+k*st)+'" cy="'+y(d.value)+'" r="3" fill="var(--bar)"/>'}).join(''):'';
+    var m=compute(vals).mean, my=y(m);
+    var mean='<line x1="0" x2="'+W+'" y1="'+my+'" y2="'+my+'" stroke="var(--ink)" stroke-dasharray="5 4"/>';
+    var every=Math.max(1,Math.ceil(36/st)), xl='';
+    for(i=0;i<n;i+=every) xl+='<text class="tick" x="'+(P+i*st)+'" y="'+(H-10)+'" text-anchor="middle">'+(i+1)+'</text>';
+    var hit='<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="transparent"/>';
+    el.innerHTML='<div style="display:flex;position:relative"><svg style="width:46px;height:'+H+'px;flex:none" viewBox="0 0 46 '+H+'" aria-hidden="true">'+ax+'</svg><div class="scroll" style="flex:1;min-width:0"><svg style="width:'+W+'px;max-width:none;height:'+H+'px" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Grafik area nilai tiap data">'+gr+area+line+dots+mean+xl+'<line id="hl" y1="0" y2="'+H+'" stroke="var(--ink)" stroke-opacity=".35" style="opacity:0;transition:opacity .35s ease"/><circle id="hc" r="5" fill="var(--surface)" stroke="var(--bar)" stroke-width="2" style="opacity:0;transition:opacity .35s ease"/>'+hit+'</svg></div><div id="tip" role="status" style="position:absolute;left:0;top:0;opacity:0;transition:opacity .35s ease;pointer-events:none;z-index:5;background:var(--ink);color:var(--bg);padding:8px 10px;border-radius:6px;font-size:13px;line-height:1.45;width:max-content;max-width:240px"></div></div><p class="sub" style="margin:8px 0 0;font-size:14px">Garis putus-putus: rata-rata '+fmt(m)+'. Geser ke kanan kalau datanya banyak. Arahkan kursor (atau sentuh) ke grafik untuk melihat detail tiap data.</p>';
+    var svg=el.querySelector('svg[role="img"]'), tip=$("tip"), hl=$("hl"), hc=$("hc"), wrap=tip.parentNode;
+    function show(e){
+      var r=svg.getBoundingClientRect(), k=Math.round((e.clientX-r.left-P)/st);
+      k=Math.max(0,Math.min(n-1,k));
+      var d=data[k], px=P+k*st, py=y(d.value);
+      hl.setAttribute("x1",px); hl.setAttribute("x2",px); hl.style.opacity=1;
+      hc.setAttribute("cx",px); hc.setAttribute("cy",py); hc.style.opacity=1;
+      tip.innerHTML='<b>'+esc(d.name)+'</b><br>Nilai: '+fmt(d.value)+'<br>Tanggal: '+fdate(d.date)+(d.note?'<br>Catatan: '+esc(d.note):'')+'<br>Data ke-'+(k+1)+' dari '+n;
+      tip.style.opacity="1";
+      var wr=wrap.getBoundingClientRect(), half=tip.offsetWidth/2;
+      var left=Math.max(half,Math.min(wr.width-half,r.left+px-wr.left));
+      var top=r.top+py-wr.top-12, flip=top<tip.offsetHeight+4;
+      if(flip) top=r.top+py-wr.top+14;
+      tip.style.transform=flip?"translate(-50%,0)":"translate(-50%,-100%)";
+      tip.style.left=left+"px"; tip.style.top=top+"px";
+    }
+    function hide(){ tip.style.opacity="0"; hl.style.opacity=0; hc.style.opacity=0; }
+    svg.addEventListener("pointermove",show);
+    svg.addEventListener("pointerdown",show);
+    svg.addEventListener("pointerleave",function(e){ if(e.pointerType==="mouse") hide(); });
+    svg.addEventListener("pointerup",function(e){ if(e.pointerType!=="mouse") setTimeout(hide,1800); });
+  }
+
+  function renderChartOld(){
+    var el=$("chart");
+    if(!data.length){ el.innerHTML='<p class="empty">Grafik muncul setelah ada data.</p>'; return; }
+    var W=700,H=260,L=44,R=12,T=14,B=30,vals=data.map(function(d){return d.value});
+    var mn=Math.min(0,Math.min.apply(null,vals)), mx=Math.max(0,Math.max.apply(null,vals)); if(mx===mn) mx=mn+1;
+    var pw=W-L-R, ph=H-T-B, bw=Math.min(40,pw/data.length*0.7), step=pw/data.length;
+    var y=function(v){return T+ph-(v-mn)/(mx-mn)*ph};
+    var out='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Diagram batang nilai tiap data">';
+    for(var i=0;i<=4;i++){ var tv=mn+(mx-mn)*i/4, ty=y(tv); out+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+ty+'" y2="'+ty+'" stroke="var(--line)"/><text class="tick" x="'+(L-6)+'" y="'+(ty+4)+'" text-anchor="end">'+fmt(tv)+'</text>'; }
+    data.forEach(function(d,i){
+      var x=L+step*i+(step-bw)/2, y0=y(0), y1=y(d.value);
+      out+='<rect x="'+x+'" y="'+Math.min(y0,y1)+'" width="'+bw+'" height="'+Math.max(1,Math.abs(y0-y1))+'" rx="2" fill="var(--bar)"><title>'+esc(d.name)+': '+fmt(d.value)+' ('+fdate(d.date)+')</title></rect>';
+      if(data.length<=14) out+='<text class="tick" x="'+(x+bw/2)+'" y="'+(H-10)+'" text-anchor="middle">'+(i+1)+'</text>';
+    });
+    var m=compute(vals).mean;
+    out+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(m)+'" y2="'+y(m)+'" stroke="var(--ink)" stroke-dasharray="5 4"/><text class="tick" x="'+(W-R)+'" y="'+(y(m)-5)+'" text-anchor="end">rata-rata '+fmt(m)+'</text></svg>';
+    el.innerHTML=out;
+  }
+
+  function renderGroups(){
+    var el=$("groups");
+    if(!data.length){ el.innerHTML='<p class="empty">Belum ada data.</p>'; return; }
+    var g={},order=[];
+    data.forEach(function(d){ var k=d.name; if(!g[k]){g[k]=[];order.push(k);} g[k].push(d.value); });
+    el.innerHTML='<table><thead><tr><th>Nama</th><th class="n">n</th><th class="n">Rata-rata</th><th class="n">Min</th><th class="n">Maks</th></tr></thead><tbody>'+
+      order.map(function(k){var c=compute(g[k]);return '<tr><td>'+esc(k)+'</td><td class="n">'+c.n+'</td><td class="n">'+fmt(c.mean)+'</td><td class="n">'+fmt(c.min)+'</td><td class="n">'+fmt(c.max)+'</td></tr>'}).join("")+'</tbody></table>';
+  }
+
+  function renderList(){
+    var data=vis(), el=$("list");
+    if(!data.length){ el.innerHTML='<p class="empty">Belum ada data.</p>'; return; }
+    el.innerHTML='<table><thead><tr><th class="n">#</th><th>Nama</th><th class="n">Nilai</th><th>Tanggal</th><th>Catatan</th><th></th></tr></thead><tbody>'+
+      data.map(function(d,i){return '<tr><td class="n">'+(i+1)+'</td><td>'+esc(d.name)+'</td><td class="n">'+fmt(d.value)+'</td><td>'+fdate(d.date)+'</td><td style="white-space:normal;min-width:140px">'+esc(d.note||"")+'</td><td><button class="del" data-id="'+d.id+'" type="button" aria-label="Hapus data '+(i+1)+'">Hapus</button></td></tr>'}).join("")+'</tbody></table>';
+  }
+
+  var filter="", undo=null, tt;
+  function vis(){ return filter?data.filter(function(d){return d.name===filter}):data; }
+  function renderFilter(){
+    var names=[]; data.forEach(function(d){ if(names.indexOf(d.name)<0) names.push(d.name); });
+    if(filter&&names.indexOf(filter)<0) filter="";
+    $("filter").innerHTML='<option value="">Semua ('+data.length+')</option>'+names.map(function(k){return '<option value="'+esc(k)+'"'+(k===filter?' selected':'')+'>'+esc(k)+'</option>'}).join("");
+  }
+  function toast(msg){
+    var t=$("toast"); t.innerHTML=esc(msg)+' <button type="button" id="undo">Urungkan</button>';
+    t.style.opacity=1; t.style.pointerEvents="auto"; clearTimeout(tt);
+    tt=setTimeout(function(){ t.style.opacity=0; t.style.pointerEvents="none"; undo=null; },6000);
+  }
+  function render(){ renderFilter(); renderStats(); renderChart(); renderGroups(); renderList(); }
+
+  $("date").value=today();
+
+  $("form").addEventListener("submit",function(e){
+    e.preventDefault();
+    var name=$("name").value.trim(), raw=$("value").value, val=parseFloat(raw), date=$("date").value||today();
+    if(!name){ $("err").textContent="Isi nama dulu."; $("name").focus(); return; }
+    if(raw===""||isNaN(val)){ $("err").textContent="Nilai harus berupa angka."; $("value").focus(); return; }
+    $("err").textContent="";
+    data.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:name,value:val,date:date,note:$("note").value.trim()});
+    save(); render();
+    $("value").value=""; $("note").value=""; $("date").value=today(); $("value").focus();
+  });
+
+  $("list").addEventListener("click",function(e){
+    var id=e.target.getAttribute&&e.target.getAttribute("data-id"); if(!id) return;
+    var idx=data.findIndex(function(d){return d.id===id}); if(idx<0) return;
+    undo={item:data[idx],index:idx}; data.splice(idx,1); save(); render(); toast("Data dihapus.");
+  });
+
+  $("clear").addEventListener("click",function(){
+    if(!data.length) return;
+    if(this.getAttribute("data-armed")){ data=[]; save(); render(); this.textContent="Hapus semua"; this.removeAttribute("data-armed"); return; }
+    var b=this; b.setAttribute("data-armed","1"); b.textContent="Yakin? Tekan lagi";
+    setTimeout(function(){ b.textContent="Hapus semua"; b.removeAttribute("data-armed"); },3000);
+  });
+
+  $("step").addEventListener("input",function(){ $("stepv").textContent=this.value+" px"; renderChart(); });
+  $("filter").addEventListener("change",function(){ filter=this.value; render(); });
+  $("toast").addEventListener("click",function(e){
+    if(e.target.id==="undo"&&undo){ data.splice(undo.index,0,undo.item); undo=null; save(); render(); this.style.opacity=0; this.style.pointerEvents="none"; }
+  });
+  $("copy").addEventListener("click",function(){
+    var rows=vis(); if(!rows.length) return;
+    var q=function(s){return '"'+String(s).replace(/"/g,'""')+'"'};
+    var csv=["nama,nilai,tanggal,catatan"].concat(rows.map(function(d){return [q(d.name),d.value,d.date,q(d.note||"")].join(",")})).join("\n");
+    var b=this, done=function(t){ b.textContent=t; setTimeout(function(){ b.textContent="Salin CSV"; },1800); };
+    function fallback(){
+      var t=document.createElement("textarea"); t.value=csv; t.style.position="fixed"; t.style.opacity="0"; document.body.appendChild(t); t.select();
+      var ok=false; try{ ok=document.execCommand("copy"); }catch(e){} document.body.removeChild(t); done(ok?"Tersalin":"Gagal menyalin");
+    }
+    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(csv).then(function(){ done("Tersalin"); },fallback); } else fallback();
+  });
+  load(); render();
+})();
+</script>
+</body>
+</html>
