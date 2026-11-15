@@ -220,6 +220,7 @@ svg{width:100%;height:auto;display:block}
   }
 
   var filter="", undo=null, tt;
+  function sortData(){ data=data.map(function(d,i){return [d,i]}).sort(function(a,b){return a[0].date<b[0].date?-1:a[0].date>b[0].date?1:a[1]-b[1]}).map(function(p){return p[0]}); }
   function vis(){ return filter?data.filter(function(d){return d.name===filter}):data; }
   function renderFilter(){
     var names=[]; data.forEach(function(d){ if(names.indexOf(d.name)<0) names.push(d.name); });
@@ -241,7 +242,7 @@ svg{width:100%;height:auto;display:block}
     if(!name){ $("err").textContent="Isi nama dulu."; $("name").focus(); return; }
     if(raw===""||isNaN(val)){ $("err").textContent="Nilai harus berupa angka."; $("value").focus(); return; }
     $("err").textContent="";
-    data.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:name,value:val,date:date,note:$("note").value.trim()});
+    data.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:name,value:val,date:date,note:$("note").value.trim()}); sortData();
     save(); render();
     $("value").value=""; $("note").value=""; $("date").value=today(); $("value").focus();
   });
@@ -275,7 +276,7 @@ svg{width:100%;height:auto;display:block}
     }
     if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(csv).then(function(){ done("Tersalin"); },fallback); } else fallback();
   });
-  load(); render();
+  load(); sortData(); render();
 })();
 </script>
 </body>
