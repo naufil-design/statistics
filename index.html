@@ -102,7 +102,8 @@ svg{width:100%;height:auto;display:block}
   </section>
 
   <section class="card" aria-label="Daftar data">
-    <div class="head"><h2>Data</h2><span style="display:flex;gap:8px"><button class="ghost" id="copy" type="button">Salin CSV</button><button class="ghost" id="clear" type="button">Hapus semua</button></span></div>
+    <div class="head"><h2>Data</h2><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="ghost" id="exp" type="button">Ekspor JSON</button><button class="ghost" id="imp" type="button">Impor JSON</button><input id="importfile" type="file" accept=".json,application/json" hidden><button class="ghost" id="copy" type="button">Salin CSV</button><button class="ghost" id="clear" type="button">Hapus semua</button></span></div>
+    <p id="iostat" role="status" style="margin:0 0 10px;font-size:14px;color:var(--muted)"></p>
     <div class="scroll" id="list"></div>
   </section>
 </main>
@@ -275,6 +276,41 @@ svg{width:100%;height:auto;display:block}
       var ok=false; try{ ok=document.execCommand("copy"); }catch(e){} document.body.removeChild(t); done(ok?"Tersalin":"Gagal menyalin");
     }
     if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(csv).then(function(){ done("Tersalin"); },fallback); } else fallback();
+  });
+  function ioMsg(t){ $("iostat").textContent=t; }
+  $("exp").addEventListener("click",async function(){
+    if(!data.length){ ioMsg("Belum ada data untuk diekspor."); return; }
+    var dl=null; try{ dl=(window.claude&&claude.use)?await claude.use("downloads"):null; }catch(e){}
+    if(!dl){ ioMsg("Ekspor file tidak tersedia di tampilan ini. Gunakan Salin CSV sebagai gantinya."); return; }
+    var payload={app:"buku-catatan-observasi",versi:1,diekspor:new Date().toISOString(),data:data.map(function(d){return {nama:d.name,nilai:d.value,tanggal:d.date,catatan:d.note||""}})};
+    try{ await dl.save({filename:"observasi-"+today()+".json",data:JSON.stringify(payload,null,2)}); ioMsg("File JSON siap disimpan."); }
+    catch(e){ ioMsg(e&&e.code==="declined"?"Ekspor dibatalkan.":"Ekspor gagal ("+((e&&e.code)||"error")+")."); }
+  });
+  $("imp").addEventListener("click",function(){ $("importfile").click(); });
+  $("importfile").addEventListener("change",function(){
+    var inp=this, f=inp.files&&inp.files[0]; if(!f) return;
+    var rd=new FileReader();
+    rd.onload=function(){
+      var arr; try{ var j=JSON.parse(rd.result); arr=Array.isArray(j)?j:(j&&j.data); }catch(e){ arr=null; }
+      if(!Array.isArray(arr)){ ioMsg("File tidak dikenali. Pakai file JSON hasil ekspor dari halaman ini."); return; }
+      var added=0,dup=0,bad=0,seen={};
+      var sig=function(n,v,t,c){return JSON.stringify([n,v,t,c])};
+      data.forEach(function(d){ seen[sig(d.name,d.value,d.date,d.note||"")]=1; });
+      arr.forEach(function(r){
+        r=r||{};
+        var rv=r.nilai!=null?r.nilai:r.value, v=Number(rv);
+        var n=String(r.nama!=null?r.nama:(r.name!=null?r.name:"")).trim();
+        var t=String(r.tanggal!=null?r.tanggal:(r.date!=null?r.date:""));
+        var c=String(r.catatan!=null?r.catatan:(r.note!=null?r.note:"")).trim();
+        if(!n||rv==null||rv===""||!isFinite(v)||!/^\d{4}-\d{2}-\d{2}$/.test(t)){ bad++; return; }
+        var s=sig(n,v,t,c); if(seen[s]){ dup++; return; } seen[s]=1;
+        data.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:n,value:v,date:t,note:c}); added++;
+      });
+      sortData(); save(); render();
+      ioMsg("Impor selesai: "+added+" data ditambahkan"+(dup?", "+dup+" duplikat dilewati":"")+(bad?", "+bad+" baris tidak valid dilewati":"")+".");
+    };
+    rd.onerror=function(){ ioMsg("File tidak bisa dibaca."); };
+    rd.readAsText(f); inp.value="";
   });
   load(); sortData(); render();
 })();
